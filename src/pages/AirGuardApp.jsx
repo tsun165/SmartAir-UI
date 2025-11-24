@@ -17,7 +17,7 @@ import {
   Wind,
   X
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -202,6 +202,8 @@ const getGridColor = (row, col) => {
   return '#22c55e'; 
 };
 
+const NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
+
 const AQIBar = ({ className = "" }) => {
   const colors = [
     "#22c55e", // Tốt
@@ -260,16 +262,114 @@ export default function AirGuardApp() {
     const [isForecastOpen, setIsForecastOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [osmResults, setOsmResults] = useState([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchError, setSearchError] = useState(null);
+    const searchAbortRef = useRef(null);
 
-    const searchResults = searchQuery
+    const localSearchMatches = searchQuery
       ? baseStationMarkers.filter(marker => {
           const query = searchQuery.toLowerCase();
           return marker.name.toLowerCase().includes(query) ||
                  marker.address.toLowerCase().includes(query) ||
                  marker.district.toLowerCase().includes(query) ||
                  marker.city.toLowerCase().includes(query);
-        }).slice(0, 6)
+        }).slice(0, 5)
       : [];
+
+    const combinedSearchResults = [
+      ...localSearchMatches.map(marker => ({
+        id: `station-${marker.id}`,
+        type: 'station',
+        name: marker.name,
+        address: marker.address ?? marker.city,
+        lat: marker.lat,
+        lng: marker.lng,
+        raw: marker
+      })),
+      ...osmResults
+    ];
+
+    const fetchOsmLocations = async (query) => {
+      if (query.length < 3) {
+        setOsmResults([]);
+        setSearchError(null);
+        return;
+      }
+
+      try {
+        if (searchAbortRef.current) {
+          searchAbortRef.current.abort();
+        }
+        const controller = new AbortController();
+        searchAbortRef.current = controller;
+        setSearchLoading(true);
+        setSearchError(null);
+
+        const params = new URLSearchParams({
+          format: 'json',
+          addressdetails: '1',
+          polygon_geojson: '0',
+          limit: '5',
+          countrycodes: 'vn',
+          dedupe: '1',
+          q: query
+        });
+
+        const response = await fetch(`${NOMINATIM_ENDPOINT}?${params.toString()}`, {
+          headers: {
+            'Accept-Language': 'vi',
+            'User-Agent': 'SmartAir-UI/1.0 (+https://github.com/nvnhat04/SmartAir-UI)'
+          },
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error('Không thể tìm kiếm địa điểm');
+        }
+
+        const data = await response.json();
+        const mapped = data.map(item => {
+          const city = item.address?.city || item.address?.town || item.address?.village || '';
+          const district = item.address?.city_district || item.address?.district || '';
+          const state = item.address?.state || '';
+          const formattedAddress = [district, city, state].filter(Boolean).join(', ');
+
+          return {
+            id: `osm-${item.place_id}`,
+            type: 'osm',
+            name: item.display_name?.split(',')[0] || item.display_name,
+            address: formattedAddress || item.display_name,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon)
+          };
+        });
+
+        setOsmResults(mapped);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error(error);
+          setSearchError('Không tìm thấy địa điểm phù hợp');
+        }
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      if (!isSearchOpen || !searchQuery.trim()) {
+        setOsmResults([]);
+        setSearchError(null);
+        return;
+      }
+
+      const debounceId = setTimeout(() => {
+        fetchOsmLocations(searchQuery.trim());
+      }, 450);
+
+      return () => clearTimeout(debounceId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery, isSearchOpen]);
 
     const currentMarkers = baseStationMarkers.map(m => {
       const change = (selectedDay * 15) * (m.id % 2 === 0 ? -1 : 1);
@@ -339,12 +439,27 @@ export default function AirGuardApp() {
       );
     };
 
+    useEffect(() => {
+      return () => {
+        if (searchAbortRef.current) {
+          searchAbortRef.current.abort();
+        }
+      };
+    }, []);
+
     const handleSearchResultClick = (result) => {
       setUserLocation({ lat: result.lat, lng: result.lng });
-      const match = currentMarkers.find(m => m.id === result.id);
-      if (match) setSelectedLoc(match);
+
+      if (result.type === 'station' && result.raw) {
+        setSelectedLoc(result.raw);
+      } else {
+        setSelectedLoc(null);
+      }
+
       setIsSearchOpen(false);
       setSearchQuery('');
+      setOsmResults([]);
+      setSearchError(null);
     };
 
     const goToDetail = () => {
@@ -367,7 +482,7 @@ export default function AirGuardApp() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {isSearchOpen && (
-                <button onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}>
+                <button onClick={() => { setIsSearchOpen(false); setSearchQuery(''); setOsmResults([]); setSearchError(null); }}>
                   <X size={16} className='text-gray-400' />
                 </button>
               )}
@@ -396,24 +511,43 @@ export default function AirGuardApp() {
           </div>
 
           {isSearchOpen && searchQuery && (
-            <div className='pointer-events-auto bg-white rounded-2xl shadow-xl border border-gray-100 max-h-48 overflow-y-auto p-2 animate-fade-in'>
-              {searchResults.length > 0 ? (
-                searchResults.map(res => (
-                  <div
-                    key={res.id}
-                    onClick={() => handleSearchResultClick(res)}
-                    className='p-2 hover:bg-gray-50 rounded-lg cursor-pointer flex items-center space-x-2'
-                  >
-                    <MapPin size={14} className='text-gray-400' />
-                    <div>
-                      <div className='text-sm font-bold text-gray-800'>{res.name}</div>
+            <div className='pointer-events-auto bg-white rounded-2xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto p-2 animate-fade-in space-y-1'>
+              {combinedSearchResults.length > 0 && combinedSearchResults.map(res => (
+                <div
+                  key={res.id}
+                  onClick={() => handleSearchResultClick(res)}
+                  className='p-2 hover:bg-gray-50 rounded-lg cursor-pointer flex items-center space-x-2'
+                >
+                  <MapPin size={14} className={res.type === 'station' ? 'text-green-500' : 'text-blue-500'} />
+                  <div className='flex flex-col'>
+                    <div className='text-sm font-bold text-gray-800'>{res.name}</div>
+                    {res.address && (
                       <div className='text-xs text-gray-500'>{res.address}</div>
-                    </div>
+                    )}
+                    <span className='text-[10px] uppercase tracking-wide font-semibold text-gray-400'>
+                      {res.type === 'station' ? 'Trạm quan trắc' : 'Dữ liệu OSM'}
+                    </span>
                   </div>
-                ))
-              ) : (
+                </div>
+              ))}
+
+              {searchLoading && (
+                <div className='p-3 text-center text-sm text-blue-500'>
+                  Đang tìm kiếm địa điểm...
+                </div>
+              )}
+
+              {!searchLoading && combinedSearchResults.length === 0 && !searchError && (
                 <div className='p-3 text-center text-sm text-gray-400'>
-                  Không tìm thấy địa điểm
+                  {searchQuery.trim().length < 3
+                    ? 'Nhập ít nhất 3 ký tự để tìm kiếm'
+                    : 'Không tìm thấy địa điểm phù hợp'}
+                </div>
+              )}
+
+              {searchError && (
+                <div className='p-3 text-center text-sm text-red-500'>
+                  {searchError}
                 </div>
               )}
             </div>
