@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { MapPin, Wind, Sun, ArrowRight, Navigation, CloudRain, Cloud } from 'lucide-react';
+import { ArrowRight, ChevronDown, Cloud, CloudRain, MapPin, Navigation, Sun, Wind } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 // --- 1. Sub-components & Helpers (Phần bổ trợ) ---
 
@@ -20,6 +20,34 @@ const WeatherIcon = ({ type, className }) => {
   }
 };
 
+// Helper: Lấy URL ảnh theo tên địa điểm
+const getLocationImage = (name) => {
+  const imageMap = {
+    "Ecopark, Hưng Yên": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80",
+    "Công viên Yên Sở": "https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=800&q=80",
+    "Làng cổ Đường Lâm": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80",
+    "Khu du lịch Sơn Tây": "https://images.unsplash.com/photo-1528127269322-539801943592?w=800&q=80",
+    "Vườn Vua Resort": "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=800&q=80",
+    "Ba Vì, Hà Nội": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+    "Chùa Hương, Mỹ Đức": "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=80",
+    "Đại Lải, Vĩnh Phúc": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
+    "Tam Đảo, Vĩnh Phúc": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+    "Thung Nham, Ninh Bình": "https://images.unsplash.com/photo-1587474260584-136574528ed5?w=800&q=80",
+    "Tràng An, Ninh Bình": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80",
+    "Pù Luông, Thanh Hóa": "https://images.unsplash.com/photo-1586500036706-41963de24d8b?w=800&q=80",
+    "Bái Đính, Ninh Bình": "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=80",
+    "Mù Cang Chải, Yên Bái": "https://images.unsplash.com/photo-1586500036706-41963de24d8b?w=800&q=80",
+    "Cúc Phương, Ninh Bình": "https://images.unsplash.com/photo-1511497584788-876760111969?w=800&q=80",
+    "Cát Bà, Hải Phòng": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
+    "Sapa, Lào Cai": "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&q=80",
+    "Hạ Long, Quảng Ninh": "https://images.unsplash.com/photo-1528127269322-539801943592?w=800&q=80",
+    "Đồ Sơn, Hải Phòng": "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
+    "Yên Tử, Quảng Ninh": "https://images.unsplash.com/photo-1548013146-72479768bada?w=800&q=80"
+  };
+  
+  return imageMap[name] || "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
+};
+
 // --- 2. Main Component ---
 
 const WeekendGetaway = ({ 
@@ -27,70 +55,82 @@ const WeekendGetaway = ({
   destinations = [] // Danh sách địa điểm gợi ý
 }) => {
 
-  // Logic: Sắp xếp địa điểm từ Sạch nhất -> Bẩn nhất
+  // State: Bán kính được chọn
+  const [selectedRadius, setSelectedRadius] = useState(100);
+  const [showRadiusMenu, setShowRadiusMenu] = useState(false);
+  const radiusOptions = [50, 100, 150, 200];
+
+  // Logic: Lọc địa điểm theo bán kính được chọn và sắp xếp theo AQI
   const sortedDestinations = useMemo(() => {
-    return [...destinations].sort((a, b) => a.aqi - b.aqi);
-  }, [destinations]);
+    const filtered = destinations.filter(dest => dest.distance <= selectedRadius);
+    return filtered.sort((a, b) => a.aqi - b.aqi);
+  }, [destinations, selectedRadius]);
 
   // Logic: Lấy địa điểm tốt nhất để so sánh
   const bestDestination = sortedDestinations[0];
-  
-  // Logic: Tính % giảm bụi
-  const reductionPercentage = bestDestination 
-    ? Math.round((1 - (bestDestination.aqi / currentLocation.aqi)) * 100) 
-    : 0;
-
-  const currentTheme = getAQITheme(currentLocation.aqi);
-  const bestTheme = bestDestination ? getAQITheme(bestDestination.aqi) : null;
 
   if (!bestDestination) return <div>Đang tải dữ liệu...</div>;
 
   return (
     <div className="w-full max-w-md mx-auto bg-gray-50 rounded-3xl overflow-hidden shadow-xl font-sans border border-gray-100">
       
-      {/* SECTION 1: HEADER & COMPARISON */}
-      <div className="bg-white p-5 pb-8 rounded-b-3xl shadow-sm z-10">
-        <div className="flex justify-between items-end mb-4">
+      {/* SECTION 1: HEADER */}
+      <div className="bg-white p-5 pb-6 rounded-b-3xl shadow-sm z-10">
+        <div className="flex justify-between items-start mb-3">
             <div>
                 <h2 className="text-lg font-bold text-gray-800">Trốn bụi cuối tuần 🌿</h2>
                 <p className="text-xs text-gray-500">Dựa trên dự báo 48h tới</p>
             </div>
-            <span className="text-[10px] bg-gray-100 px-2 py-1 rounded-lg text-gray-600 font-medium">
-                Bán kính 100km
-            </span>
+            
+            {/* Dropdown Bán kính */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowRadiusMenu(!showRadiusMenu)}
+                className="flex items-center gap-1 text-[10px] bg-gradient-to-r from-blue-50 to-purple-50 px-3 py-1.5 rounded-lg text-gray-700 font-semibold border border-blue-200 hover:shadow-md transition-all active:scale-95"
+              >
+                <Navigation size={11} className="text-blue-600" />
+                {selectedRadius}km
+                <ChevronDown size={12} className={`transition-transform ${showRadiusMenu ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {/* Menu dropdown */}
+              {showRadiusMenu && (
+                <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20 min-w-[100px]">
+                  {radiusOptions.map(radius => (
+                    <button
+                      key={radius}
+                      onClick={() => {
+                        setSelectedRadius(radius);
+                        setShowRadiusMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-xs hover:bg-blue-50 transition-colors ${
+                        selectedRadius === radius ? 'bg-blue-100 text-blue-700 font-bold' : 'text-gray-700'
+                      }`}
+                    >
+                      {radius} km
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
         </div>
 
-        {/* Card So Sánh Chính */}
-        <div className="flex items-center justify-between bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 border border-gray-200 relative overflow-hidden">
-          
-          {/* Bên Trái: Nơi ở (Ô nhiễm) */}
-          <div className="flex flex-col items-center w-1/3 z-10">
-            <span className="text-[10px] font-semibold text-gray-500 mb-1 truncate w-full text-center">{currentLocation.name}</span>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md ${currentTheme.indicator}`}>
-              {currentLocation.aqi}
+        {/* Stats Summary */}
+        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-3 border border-blue-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                <MapPin size={16} className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-600">Vị trí hiện tại</p>
+                <p className="text-sm font-bold text-gray-800">{currentLocation.name}</p>
+              </div>
             </div>
-            <span className={`text-[10px] font-bold mt-1 uppercase ${currentTheme.color}`}>{currentTheme.label}</span>
-          </div>
-
-          {/* Ở Giữa: Mũi tên & Lợi ích */}
-          <div className="flex flex-col items-center justify-center w-1/3 z-10 px-1">
-            <div className="bg-white p-1.5 rounded-full shadow-sm mb-1">
-                <ArrowRight size={14} className="text-gray-400" />
+            <div className="text-right">
+              <p className="text-[10px] text-gray-600">AQI hiện tại</p>
+              <p className="text-lg font-bold text-red-600">{currentLocation.aqi}</p>
             </div>
-            {reductionPercentage > 0 && (
-                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-green-200">
-                Giảm {reductionPercentage}% bụi
-                </span>
-            )}
-          </div>
-
-          {/* Bên Phải: Nơi đến (Sạch) */}
-          <div className="flex flex-col items-center w-1/3 z-10">
-            <span className="text-[10px] font-semibold text-gray-500 mb-1 truncate w-full text-center">{bestDestination.name}</span>
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md animate-[bounce_2s_infinite] ${bestTheme.indicator}`}>
-              {bestDestination.aqi}
-            </div>
-            <span className={`text-[10px] font-bold mt-1 uppercase ${bestTheme.color}`}>{bestTheme.label}</span>
           </div>
         </div>
       </div>
@@ -102,51 +142,72 @@ const WeekendGetaway = ({
         {sortedDestinations.map((dest) => {
           const theme = getAQITheme(dest.aqi);
           const cleanRatio = (currentLocation.aqi / dest.aqi).toFixed(1);
+          const reductionPercentage = Math.round((1 - (dest.aqi / currentLocation.aqi)) * 100);
 
           return (
-            <div key={dest.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]">
-              {/* Header của Card con */}
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl ${theme.bg} flex items-center justify-center`}>
-                     <Sun size={20} className={theme.color} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-800 text-sm">{dest.name}</h4>
-                    <div className="flex items-center text-[10px] text-gray-500 gap-1">
-                       <MapPin size={10} /> {dest.distance}km • {dest.driveTime}
-                    </div>
-                  </div>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${theme.bg} ${theme.color} ${theme.border}`}>
-                  AQI {dest.aqi}
-                </span>
+            <div key={dest.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl transition-all cursor-pointer active:scale-[0.98] relative overflow-hidden group">
+              {/* Background Image với overlay */}
+              <div className="absolute inset-0 z-0">
+                <img 
+                  src={getLocationImage(dest.name)} 
+                  alt={dest.name}
+                  className="w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+                />
+                <div className="absolute inset-0  from-white/90 via-white/95 to-white/98"></div>
               </div>
 
-              {/* Thông số chi tiết */}
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                 <div className="bg-gray-50 p-2 rounded-lg flex items-center gap-2">
-                    <Wind size={14} className="text-blue-500"/>
-                    <div>
-                        <p className="text-[10px] text-gray-500">Độ sạch</p>
-                        <p className="text-xs font-bold text-blue-600">Gấp {cleanRatio} lần</p>
+              {/* Content wrapper */}
+              <div className="relative z-10 p-3">
+                {/* Badge % giảm bụi */}
+                {reductionPercentage > 0 && (
+                  <div className="absolute top-2 right-2">
+                    <span className="text-[10px] font-bold text-green-700 bg-green-100/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-md border border-green-200 flex items-center gap-1">
+                      <ArrowRight size={10} className="rotate-[-45deg]" />
+                      Giảm {reductionPercentage}%
+                    </span>
+                  </div>
+                )}
+
+                {/* Header của Card con */}
+                <div className="flex justify-between items-start mb-2 pr-20">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl ${theme.bg} flex items-center justify-center shadow-md`}>
+                       <Sun size={20} className={theme.color} />
                     </div>
-                 </div>
-                 <div className="bg-gray-50 p-2 rounded-lg flex items-center gap-2">
-                    <WeatherIcon type={dest.weatherType} />
                     <div>
-                        <p className="text-[10px] text-gray-500">Thời tiết</p>
-                        <p className="text-xs font-bold text-gray-700">{dest.temp}°C</p>
+                      <h4 className="font-bold text-gray-800 text-sm">{dest.name}</h4>
+                      <div className="flex items-center text-[10px] text-gray-600 gap-1">
+                         <MapPin size={10} /> {dest.distance}km • {dest.driveTime}
+                      </div>
                     </div>
-                 </div>
-              </div>
-              
-              {/* Footer & CTA */}
-              <div className="flex justify-between items-center pt-2 border-t border-gray-50 mt-1">
-                  <span className="text-[10px] text-gray-500 italic">💡 {dest.recommendation}</span>
-                  {/* <button className="flex items-center gap-1 text-[10px] font-bold text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50 transition-colors">
-                      Chỉ đường <Navigation size={10} />
-                  </button> */}
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${theme.bg} ${theme.color} ${theme.border} shadow-sm`}>
+                    AQI {dest.aqi}
+                  </span>
+                </div>
+
+                {/* Thông số chi tiết */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                   <div className="bg-white/80 backdrop-blur-sm p-2 rounded-lg flex items-center gap-2 shadow-sm border border-gray-100">
+                      <Wind size={14} className="text-blue-500"/>
+                      <div>
+                          <p className="text-[10px] text-gray-600">Độ sạch</p>
+                          <p className="text-xs font-bold text-blue-600">Gấp {cleanRatio} lần</p>
+                      </div>
+                   </div>
+                   <div className="bg-white/80 backdrop-blur-sm p-2 rounded-lg flex items-center gap-2 shadow-sm border border-gray-100">
+                      <WeatherIcon type={dest.weatherType} />
+                      <div>
+                          <p className="text-[10px] text-gray-600">Thời tiết</p>
+                          <p className="text-xs font-bold text-gray-700">{dest.temp}°C</p>
+                      </div>
+                   </div>
+                </div>
+                
+                {/* Footer & CTA */}
+                <div className="flex justify-between items-center pt-2 border-t border-gray-100 mt-1">
+                    <span className="text-[10px] text-gray-600 italic">💡 {dest.recommendation}</span>
+                </div>
               </div>
             </div>
           );

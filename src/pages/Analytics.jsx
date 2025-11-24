@@ -37,30 +37,11 @@ const cleanestAreas = [
     aqi: 141
   };
 
-  // 2. Dữ liệu các điểm du lịch (Lấy từ API Backend của bạn)
-  const destinationData = [
+  // 2. Dữ liệu các điểm du lịch theo bán kính (Lấy từ API Backend của bạn)
+  const allDestinations = [
+    // Bán kính 50km
     {
       id: 1,
-      name: "Tam Đảo, Vĩnh Phúc",
-      aqi: 35,
-      weatherType: "cloud",
-      temp: 18,
-      distance: 85,
-      driveTime: "2 giờ 15 phút",
-      recommendation: "Săn mây, check-in Thác Bạc, khí hậu mát mẻ quanh năm"
-    },
-    {
-      id: 2,
-      name: "Ba Vì, Hà Nội",
-      aqi: 42,
-      weatherType: "sun",
-      temp: 21,
-      distance: 65,
-      driveTime: "1 giờ 45 phút",
-      recommendation: "Vườn quốc gia, suối nước nóng, cắm trại rừng thông"
-    },
-    {
-      id: 3,
       name: "Ecopark, Hưng Yên",
       aqi: 40,
       weatherType: "sun",
@@ -70,7 +51,59 @@ const cleanestAreas = [
       recommendation: "Công viên sinh thái, hồ nước rộng, đạp xe dạo chơi"
     },
     {
+      id: 2,
+      name: "Công viên Yên Sở",
+      aqi: 45,
+      weatherType: "sun",
+      temp: 23,
+      distance: 12,
+      driveTime: "25 phút",
+      recommendation: "Hồ rộng, chạy bộ, picnic gia đình, không gian xanh"
+    },
+    {
+      id: 3,
+      name: "Làng cổ Đường Lâm",
+      aqi: 48,
+      weatherType: "cloud",
+      temp: 22,
+      distance: 45,
+      driveTime: "1 giờ 10 phút",
+      recommendation: "Làng cổ 1200 năm, nhà sàn truyền thống, ẩm thực đặc sản"
+    },
+    {
       id: 4,
+      name: "Khu du lịch Sơn Tây",
+      aqi: 44,
+      weatherType: "sun",
+      temp: 21,
+      distance: 42,
+      driveTime: "1 giờ",
+      recommendation: "Thành cổ Sơn Tây, núi non hùng vĩ, không khí trong lành"
+    },
+    {
+      id: 5,
+      name: "Vườn Vua Resort",
+      aqi: 38,
+      weatherType: "sun",
+      temp: 25,
+      distance: 35,
+      driveTime: "50 phút",
+      recommendation: "Resort sinh thái, vườn cây ăn trái, trải nghiệm làm vườn"
+    },
+
+    // Bán kính 100km
+    {
+      id: 6,
+      name: "Ba Vì, Hà Nội",
+      aqi: 42,
+      weatherType: "sun",
+      temp: 21,
+      distance: 65,
+      driveTime: "1 giờ 45 phút",
+      recommendation: "Vườn quốc gia, suối nước nóng, cắm trại rừng thông"
+    },
+    {
+      id: 7,
       name: "Chùa Hương, Mỹ Đức",
       aqi: 48,
       weatherType: "cloud",
@@ -80,7 +113,7 @@ const cleanestAreas = [
       recommendation: "Di tích lịch sử, chèo thuyền suối Yến, núi non hữu tình"
     },
     {
-      id: 5,
+      id: 8,
       name: "Đại Lải, Vĩnh Phúc",
       aqi: 38,
       weatherType: "sun",
@@ -88,6 +121,130 @@ const cleanestAreas = [
       distance: 55,
       driveTime: "1 giờ 20 phút",
       recommendation: "Hồ Đại Lải xanh mát, resort nghỉ dưỡng, thể thao nước"
+    },
+    {
+      id: 9,
+      name: "Tam Đảo, Vĩnh Phúc",
+      aqi: 35,
+      weatherType: "cloud",
+      temp: 18,
+      distance: 85,
+      driveTime: "2 giờ 15 phút",
+      recommendation: "Săn mây, check-in Thác Bạc, khí hậu mát mẻ quanh năm"
+    },
+    {
+      id: 10,
+      name: "Thung Nham, Ninh Bình",
+      aqi: 36,
+      weatherType: "sun",
+      temp: 24,
+      distance: 95,
+      driveTime: "2 giờ 30 phút",
+      recommendation: "Hang động, vườn chim, kayaking, cảnh quan tuyệt đẹp"
+    },
+
+    // Bán kính 150km
+    {
+      id: 11,
+      name: "Tràng An, Ninh Bình",
+      aqi: 34,
+      weatherType: "sun",
+      temp: 25,
+      distance: 110,
+      driveTime: "2 giờ 45 phút",
+      recommendation: "Di sản thế giới, chèo thuyền hang động, non nước hữu tình"
+    },
+    {
+      id: 12,
+      name: "Pù Luông, Thanh Hóa",
+      aqi: 30,
+      weatherType: "cloud",
+      temp: 20,
+      distance: 145,
+      driveTime: "3 giờ 30 phút",
+      recommendation: "Ruộng bậc thang, homestay, trekking, văn hóa Thái"
+    },
+    {
+      id: 13,
+      name: "Bái Đính, Ninh Bình",
+      aqi: 37,
+      weatherType: "sun",
+      temp: 23,
+      distance: 105,
+      driveTime: "2 giờ 40 phút",
+      recommendation: "Chùa lớn nhất Việt Nam, kiến trúc đồ sộ, cầu Phật"
+    },
+    {
+      id: 14,
+      name: "Mù Cang Chải, Yên Bái",
+      aqi: 28,
+      weatherType: "cloud",
+      temp: 19,
+      distance: 140,
+      driveTime: "3 giờ 20 phút",
+      recommendation: "Ruộng bậc thang đẹp nhất VN, Mâm Xôi, Lùng Cúng"
+    },
+    {
+      id: 15,
+      name: "Cúc Phương, Ninh Bình",
+      aqi: 33,
+      weatherType: "sun",
+      temp: 22,
+      distance: 120,
+      driveTime: "3 giờ",
+      recommendation: "Vườn quốc gia, động vật quý hiếm, trekking rừng nguyên sinh"
+    },
+
+    // Bán kính 200km
+    {
+      id: 16,
+      name: "Cát Bà, Hải Phòng",
+      aqi: 32,
+      weatherType: "sun",
+      temp: 26,
+      distance: 165,
+      driveTime: "4 giờ",
+      recommendation: "Biển đảo, vườn quốc gia, leo núi, kayaking vịnh Lan Hạ"
+    },
+    {
+      id: 17,
+      name: "Sapa, Lào Cai",
+      aqi: 25,
+      weatherType: "cloud",
+      temp: 16,
+      distance: 195,
+      driveTime: "5 giờ",
+      recommendation: "Thị trấn mù sương, ruộng bậc thang, Fansipan, văn hóa vùng cao"
+    },
+    {
+      id: 18,
+      name: "Hạ Long, Quảng Ninh",
+      aqi: 35,
+      weatherType: "sun",
+      temp: 25,
+      distance: 170,
+      driveTime: "4 giờ 15 phút",
+      recommendation: "Di sản thế giới, du thuyền vịnh, hang động kỳ vĩ"
+    },
+    {
+      id: 19,
+      name: "Đồ Sơn, Hải Phòng",
+      aqi: 38,
+      weatherType: "sun",
+      temp: 27,
+      distance: 155,
+      driveTime: "3 giờ 45 phút",
+      recommendation: "Bãi biển, hải sản tươi ngon, resort nghỉ dưỡng"
+    },
+    {
+      id: 20,
+      name: "Yên Tử, Quảng Ninh",
+      aqi: 31,
+      weatherType: "cloud",
+      temp: 20,
+      distance: 180,
+      driveTime: "4 giờ 30 phút",
+      recommendation: "Thiền viện Trúc Lâm, cáp treo, hành hương, view núi đẹp"
     }
   ];
 const getAQIColor = (aqi) => {
@@ -315,7 +472,7 @@ export default function AnalyticsView () {
         <ExposureCards meanPM25={pastPm25Avg } />
         <WeekendGetaway 
           currentLocation={userLocation} 
-          destinations={destinationData} 
+          destinations={allDestinations} 
         />
         <div className="mt-8 text-center bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
           <p className="text-sm text-gray-600 font-medium">

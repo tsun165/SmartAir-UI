@@ -258,6 +258,11 @@ const AQIBar = ({ className = "" }) => {
     </div>
   );
 };
+// const AQIBar = ({ className = "", vertical = false }) => (
+//     <div className={`flex ${vertical ? 'flex-col-reverse h-32 w-2 items-center' : 'w-full flex-col'} ${className}`}>
+//       <div className={`rounded-full bg-gradient-to-${vertical ? 't' : 'r'} from-[#00b050] via-[#ffff00] via-[#ff9800] via-[#f44336] to-[#9c27b0] shadow-inner border border-white/20 ${vertical ? 'w-full h-full' : 'h-2 w-full'}`} />
+//     </div>
+// );
 
 
 // 1. Dữ liệu người dùng (Lấy từ GPS & API)
@@ -368,7 +373,7 @@ export default function AirGuardApp() {
     {/* Time Tab Button (Forecast chọn ngày) */}
     <button 
       onClick={() => setIsForecastOpen(!isForecastOpen)}
-      className={`flex items-center space-x-1 px-3 py-2 rounded-full shadow-lg border transition-all 
+      className={`flex items-center space-x-1 px-3 py-1 rounded-full shadow-lg border transition-all 
         ${isForecastOpen ? 'bg-blue-600 text-white border-blue-600' 
                          : 'bg-white/90 backdrop-blur-md text-gray-700 border-white/50'}`}
     >
@@ -378,7 +383,9 @@ export default function AirGuardApp() {
       </span>
       <ChevronDown size={14} className={`transition-transform ${isForecastOpen ? 'rotate-180' : ''}`} />
     </button>
-
+    <button onClick={handleLocateMe} className="w-8 h-8 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all ring-4 ring-blue-200">
+            <Crosshair size={15} />
+    </button>    
   </div>
 
   {/* Search Results Dropdown */}
@@ -435,10 +442,10 @@ export default function AirGuardApp() {
 
 
         {/* AQI Legend Bar */}
-        <div className="absolute bottom-10 left-4 z-[1000] bg-white/90 backdrop-blur-md rounded-xl p-1 shadow-lg border border-white/50">
-          <div className="flex flex-col gap-1">
+        <div className="absolute bottom-10 left-10 right-10 z-[1000] bg-white/90 backdrop-blur-md rounded-xl p-1 shadow-lg border border-white/50">
+          <div className="flex flex-col gap-1 ">
             {/* <div className="text-[8px] font-bold text-gray-600 text-center mb-1">Chỉ số AQI</div> */}
-            <AQIBar className="w-64" />
+            <AQIBar className="w-full" />
           </div>
         </div>
 
@@ -510,17 +517,17 @@ export default function AirGuardApp() {
         </div>
 
         {/* Floating Controls */}
-        <div className="absolute top-20 right-4 flex flex-col space-y-3 z-[1000]">
+        {/* <div className="absolute top-40 right-4 flex flex-col space-y-3 z-[1000]">
           <button onClick={handleZoomIn} className="w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100">
-            <Plus size={24} />
+            <Plus size={20} />
           </button>
           <button onClick={handleZoomOut} className="w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-700 hover:bg-gray-50 active:scale-95 transition-all border border-gray-100">
-            <Minus size={24} />
+            <Minus size={20} />
           </button>
           <button onClick={handleLocateMe} className="w-12 h-12 bg-blue-600 text-white rounded-full shadow-xl flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all ring-4 ring-blue-200">
-            <Crosshair size={24} />
+            <Crosshair size={20} />
           </button>
-        </div>
+        </div> */}
 
         {/* Summary Bottom Sheet */}
         {selectedLoc && (

@@ -121,7 +121,7 @@ export default function NewsView() {
     };
 
     return (
-      <div className="p-5 pb-28 space-y-6 animate-fade-in h-full overflow-y-auto bg-gradient-to-b from-blue-50 to-gray-50">
+      <div className="p-5 pb-28 space-y-6 animate-fade-in h-full overflow-y-auto bg-gradient-to-b from-blue-50 to-gray-50 no-scrollbar">
         {/* Header */}
         <div className="flex justify-between items-center">
            <div>
