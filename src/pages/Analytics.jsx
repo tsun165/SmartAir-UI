@@ -260,7 +260,8 @@ export default function AnalyticsView () {
 
   const pastPm25Avg = (pastAvg * 0.6).toFixed(1);
   const futurePm25Avg = (futureAvg * 0.6).toFixed(1);
-
+  const cig_past = (pastPm25Avg / 22).toFixed(1);
+  const cig_future = (futurePm25Avg / 22).toFixed(1);
   return (
     <div className="p-5 pb-28 space-y-6 animate-fade-in h-full overflow-y-auto bg-gradient-to-b from-blue-50 to-gray-50" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
 
@@ -378,6 +379,11 @@ export default function AnalyticsView () {
                 {pastPm25Avg} <span className="text-xs font-normal text-gray-400">µg/m³</span>
               </div>
               <div className="text-[11px] text-gray-500 font-medium">Phơi nhiễm PM2.5</div>
+              <div className="text-xl font-bold text-gray-700 mt-1">
+                <span className="text-xs font-normal text-gray-400">≈ hút </span>
+                {cig_past} <span className="text-xs font-normal text-gray-400">điếu thuốc</span>
+              </div>
+             
             </div>
 
             <div className="mt-3 text-[11px] bg-white font-semibold inline-block px-3 py-1 rounded-lg text-gray-700 shadow-sm">
@@ -401,6 +407,10 @@ export default function AnalyticsView () {
                 {futurePm25Avg} <span className="text-xs font-normal text-blue-400">µg/m³</span>
               </div>
               <div className="text-[11px] text-gray-500 font-medium">Phơi nhiễm PM2.5</div>
+                <div className="text-xl font-bold text-gray-700 mt-1">
+                  <span className="text-xs font-normal text-gray-400">≈ hút </span>
+                {cig_future} <span className="text-xs font-normal text-gray-400">điếu thuốc</span>
+              </div>
             </div>
 
             <div className={`mt-3 text-[11px] font-bold inline-block px-3 py-1 rounded-lg shadow-sm ${diff < 0 ? 'bg-green-100 text-green-700 border-2 border-green-300' : 'bg-red-100 text-red-700 border-2 border-red-300'}`}>
@@ -415,7 +425,7 @@ export default function AnalyticsView () {
             Hệ thống phân tích các vị trí bạn thường lui tới để đưa ra dự báo AQI chính xác hơn.
           </p>
         </div>
-        <ExposureCards meanPM25={pastPm25Avg } />
+        {/* <ExposureCards meanPM25={pastPm25Avg } /> */}
         <WeekendGetaway 
           currentLocation={userLocation} 
           destinations={allDestinations} 

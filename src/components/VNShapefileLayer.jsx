@@ -17,7 +17,7 @@ export default function VNShapefileLayer() {
       
       // Load tất cả các file shapefile
       // shpjs cần: .shp, .shx, .dbf (và tùy chọn .prj)
-      const basePath = '/src/assets/VN41HSTS';
+      const basePath = '/VN41HSTS';
       
       // Load các file cần thiết
       const [shpRes, shxRes, dbfRes] = await Promise.all([

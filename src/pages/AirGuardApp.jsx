@@ -25,20 +25,20 @@ import {
   ResponsiveContainer,
   XAxis
 } from 'recharts';
+import OSMMap from '../components/OSMMap';
 import AIChat from './AIchat';
 import AnalyticsView from './Analytics';
 import NewsView from './News';
-import OSMMap from '../components/OSMMap';
 
 // --- MOCK DATA ---
 const forecastDays = [
-  { id: 0, label: 'Hôm nay', date: '19/11' },
-  { id: 1, label: 'Ngày mai', date: '20/11' },
-  { id: 2, label: 'Thứ 5', date: '21/11' },
-  { id: 3, label: 'Thứ 6', date: '22/11' },
-  { id: 4, label: 'Thứ 7', date: '23/11' },
-  { id: 5, label: 'Chủ nhật', date: '24/11' },
-  { id: 6, label: 'Thứ 2', date: '25/11' },
+  { id: 0, label: 'Hôm nay', date: '29/11' },
+  { id: 1, label: 'Ngày mai', date: '30/11' },
+  { id: 2, label: 'Thứ 5', date: '01/12' },
+  { id: 3, label: 'Thứ 6', date: '02/12' },
+  { id: 4, label: 'Thứ 7', date: '03/12' },
+  { id: 5, label: 'Chủ nhật', date: '04/12' },
+  { id: 6, label: 'Thứ 2', date: '05/12' },
 ];
 const baseStationMarkers = [
   { 
@@ -265,7 +265,10 @@ export default function AirGuardApp() {
     const [osmResults, setOsmResults] = useState([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState(null);
+    const [mapZoom, setMapZoom] = useState(11); // Lưu zoom level
+    const [mapCenter, setMapCenter] = useState([21.0285, 105.8542]); // Lưu center
     const searchAbortRef = useRef(null);
+    const mapInstanceRef = useRef(null); // Reference to map instance
 
     const localSearchMatches = searchQuery
       ? baseStationMarkers.filter(marker => {
@@ -401,6 +404,8 @@ export default function AirGuardApp() {
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
           setUserLocation({ lat: latitude, lng: longitude, accuracy });
+          setMapCenter([latitude, longitude]);
+          setMapZoom(13);
           setGpsLoading(false);
         },
         (error) => {
@@ -449,6 +454,8 @@ export default function AirGuardApp() {
 
     const handleSearchResultClick = (result) => {
       setUserLocation({ lat: result.lat, lng: result.lng });
+      setMapCenter([result.lat, result.lng]);
+      setMapZoom(13);
 
       if (result.type === 'station' && result.raw) {
         setSelectedLoc(result.raw);
@@ -460,6 +467,23 @@ export default function AirGuardApp() {
       setSearchQuery('');
       setOsmResults([]);
       setSearchError(null);
+    };
+
+    // Callback khi map ready, lưu instance và listen zoom changes
+    const handleMapReady = (mapInstance) => {
+      mapInstanceRef.current = mapInstance;
+      
+      // Lắng nghe sự kiện zoom change
+      mapInstance.on('zoomend', () => {
+        const currentZoom = mapInstance.getZoom();
+        setMapZoom(currentZoom);
+      });
+      
+      // Lắng nghe sự kiện move
+      mapInstance.on('moveend', () => {
+        const center = mapInstance.getCenter();
+        setMapCenter([center.lat, center.lng]);
+      });
     };
 
     const goToDetail = () => {
@@ -577,13 +601,14 @@ export default function AirGuardApp() {
 
         <div className='flex-1 w-full h-full relative'>
           <OSMMap
-            center={userLocation ? [userLocation.lat, userLocation.lng] : [21.0285, 105.8542]}
-            zoom={userLocation ? 13 : 11}
+            center={mapCenter}
+            zoom={mapZoom}
             markers={currentMarkers}
             userLocation={userLocation}
             onMarkerClick={handleMarkerClick}
             selectedDay={selectedDay}
             showHeatmap={true}
+            onMapReady={handleMapReady}
           />
         </div>
 
@@ -671,10 +696,10 @@ export default function AirGuardApp() {
       const minutes = now.getMinutes().toString().padStart(2, '0');
       
       return {
-        dayName,
+        // dayName,
         fullDate: `${date}/${month}/${year}`,
         time: `${hours}:${minutes}`,
-        displayDate: `${dayName}, ${date}/${month}/${year}`,
+        displayDate: `${date}/${month}/${year}`,
         displayTime: `Cập nhật lúc ${hours}:${minutes}`
       };
     };

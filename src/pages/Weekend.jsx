@@ -158,12 +158,12 @@ const WeekendGetaway = ({
 
               {/* Content wrapper */}
               <div className="relative z-10 p-3">
-                {/* Badge % giảm bụi */}
+                
                 {reductionPercentage > 0 && (
                   <div className="absolute top-2 right-2">
                     <span className="text-[10px] font-bold text-green-700 bg-green-100/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-md border border-green-200 flex items-center gap-1">
                       <ArrowRight size={10} className="rotate-[-45deg]" />
-                      Giảm {reductionPercentage}%
+                     AQI {dest.aqi}
                     </span>
                   </div>
                 )}
@@ -171,9 +171,9 @@ const WeekendGetaway = ({
                 {/* Header của Card con */}
                 <div className="flex justify-between items-start mb-2 pr-20">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl ${theme.bg} flex items-center justify-center shadow-md`}>
+                    {/* <div className={`w-10 h-10 rounded-xl ${theme.bg} ${theme.color} ${theme.border} flex items-center justify-center shadow-md`}>
                        <Sun size={20} className={theme.color} />
-                    </div>
+                    </div> */}
                     <div>
                       <h4 className="font-bold text-gray-800 text-sm">{dest.name}</h4>
                       <div className="flex items-center text-[10px] text-gray-600 gap-1">
@@ -181,9 +181,9 @@ const WeekendGetaway = ({
                       </div>
                     </div>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${theme.bg} ${theme.color} ${theme.border} shadow-sm`}>
+                  {/* <span className={`right-2 w-20 px-2 py-0.5 rounded-full text-[10px] font-bold border ${theme.bg} ${theme.color} ${theme.border} shadow-sm`}>
                     AQI {dest.aqi}
-                  </span>
+                  </span> */}
                 </div>
 
                 {/* Thông số chi tiết */}

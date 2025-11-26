@@ -19,10 +19,24 @@ L.Icon.Default.mergeOptions({
 // Component để tự động center map khi user location thay đổi
 function MapController({ center, zoom, onMapReady }) {
   const map = useMap();
+  const prevCenterRef = useRef(center);
+  const prevZoomRef = useRef(zoom);
   
   useEffect(() => {
     if (center) {
-      map.setView(center, zoom || map.getZoom());
+      // Chỉ update view nếu center thay đổi đáng kể (> 0.001 độ)
+      const prevCenter = prevCenterRef.current;
+      const centerChanged = !prevCenter || 
+        Math.abs(prevCenter[0] - center[0]) > 0.001 || 
+        Math.abs(prevCenter[1] - center[1]) > 0.001;
+      
+      const zoomChanged = prevZoomRef.current !== zoom;
+      
+      if (centerChanged || zoomChanged) {
+        map.setView(center, zoom || map.getZoom());
+        prevCenterRef.current = center;
+        prevZoomRef.current = zoom;
+      }
     }
   }, [center, zoom, map]);
 
@@ -90,31 +104,14 @@ export default function OSMMap({
   onMapReady,
   showHeatmap = true
 }) {
-  const [mapCenter, setMapCenter] = useState(center);
-  const [mapZoom, setMapZoom] = useState(zoom);
   const mapRef = useRef(null);
-
-  // Update center khi userLocation prop thay đổi
-  useEffect(() => {
-    if (userLocation) {
-      setMapCenter([userLocation.lat, userLocation.lng]);
-      setMapZoom(10);
-    }
-  }, [userLocation]);
-
-  // Update center khi center prop thay đổi
-  useEffect(() => {
-    if (center) {
-      setMapCenter(center);
-    }
-  }, [center]);
 
   return (
     <div className="h-full w-full relative">
       <MapContainer
         key="map-container"
-        center={mapCenter}
-        zoom={mapZoom}
+        center={center}
+        zoom={zoom}
         style={{ height: '100%', width: '100%', zIndex: 1 }}
         scrollWheelZoom={true}
         doubleClickZoom={true}
@@ -143,7 +140,7 @@ export default function OSMMap({
         <VNShapefileLayer />
 
         {/* Map Controller để tự động center */}
-        <MapController center={mapCenter} zoom={mapZoom} onMapReady={onMapReady} />
+        <MapController center={center} zoom={zoom} onMapReady={onMapReady} />
 
         {/* User Location Marker */}
         {userLocation && (
