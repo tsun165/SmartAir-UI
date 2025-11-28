@@ -31,22 +31,39 @@ import AnalyticsView from './Analytics';
 import NewsView from './News';
 
 // --- MOCK DATA ---
-const forecastDays = [
-  { id: 0, label: 'Hôm nay', date: '29/11' },
-  { id: 1, label: 'Ngày mai', date: '30/11' },
-  { id: 2, label: 'Thứ 5', date: '01/12' },
-  { id: 3, label: 'Thứ 6', date: '02/12' },
-  { id: 4, label: 'Thứ 7', date: '03/12' },
-  { id: 5, label: 'Chủ nhật', date: '04/12' },
-  { id: 6, label: 'Thứ 2', date: '05/12' },
-];
+// Hàm tạo danh sách ngày dự báo thực tế
+const generateForecastDays = () => {
+  const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  const today = new Date();
+  const forecastDays = [];
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    
+    const dayOfWeek = date.getDay();
+    const dayLabel = i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : days[dayOfWeek];
+    const dateStr = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    forecastDays.push({
+      id: i,
+      label: dayLabel,
+      date: dateStr,
+      fullDate: date
+    });
+  }
+  
+  return forecastDays;
+};
+
+const forecastDays = generateForecastDays();
 const baseStationMarkers = [
   { 
     id: 1, 
     lat: 21.038511, 
     lng: 105.784817, 
     baseAqi: 141, 
-    name: 'Trạm Cầu Giấy',
+    name: 'Vị trí của bạn',
     address: 'Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội',
     district: 'Quận Cầu Giấy',
     city: 'Hà Nội'
@@ -181,16 +198,33 @@ const stationMarkers = baseStationMarkers.map((marker) =>
 );
 // Dữ liệu dự báo các ngày
 
-// Dữ liệu biểu đồ nhỏ
-const weeklyData = [
-  { time: 'T2', date: '18/11', val: 150 }, 
-  { time: 'T3', date: '19/11', val: 85 }, 
-  { time: 'T4', date: '20/11', val: 120 }, 
-  { time: 'T5', date: '21/11', val: 90 }, 
-  { time: 'T6', date: '22/11', val: 70 }, 
-  { time: 'T7', date: '23/11', val: 40 },
-  { time: 'CN', date: '24/11', val: 60 }
-];
+// Hàm tạo dữ liệu biểu đồ 7 ngày thực tế
+const generateWeeklyData = () => {
+  const daysShort = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  const today = new Date();
+  const weeklyData = [];
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    
+    const dayOfWeek = date.getDay();
+    const dateStr = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    // Random AQI value cho demo
+    const val = 20 + Math.floor(Math.random() * 130); // 20-150 AQI
+    
+    weeklyData.push({
+      time: daysShort[dayOfWeek],
+      date: dateStr,
+      val
+    });
+  }
+  
+  return weeklyData;
+};
+
+const weeklyData = generateWeeklyData();
 
 
 // --- UTILS ---
@@ -203,6 +237,55 @@ const getGridColor = (row, col) => {
 };
 
 const NOMINATIM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
+const REVERSE_GEOCODE_ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
+
+// Tính khoảng cách giữa 2 điểm (Haversine formula)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Distance in km
+};
+
+// Tìm trạm gần nhất và interpolate AQI dựa trên khoảng cách
+const getInterpolatedAQI = (lat, lng, stations) => {
+  // Tính khoảng cách đến tất cả các trạm
+  const stationsWithDistance = stations.map(station => ({
+    ...station,
+    distance: calculateDistance(lat, lng, station.lat, station.lng)
+  }));
+  
+  // Sắp xếp theo khoảng cách
+  stationsWithDistance.sort((a, b) => a.distance - b.distance);
+  
+  // Lấy 3 trạm gần nhất để tính trung bình có trọng số
+  const nearestStations = stationsWithDistance.slice(0, 3);
+  
+  // Tính AQI trung bình có trọng số (trạm gần hơn có trọng số lớn hơn)
+  let totalWeight = 0;
+  let weightedAQI = 0;
+  
+  nearestStations.forEach(station => {
+    // Trọng số nghịch đảo với khoảng cách (+ 1 để tránh chia cho 0)
+    const weight = 1 / (station.distance + 1);
+    totalWeight += weight;
+    weightedAQI += station.aqi * weight;
+  });
+  
+  const interpolatedAQI = Math.round(weightedAQI / totalWeight);
+  const nearestStation = nearestStations[0];
+  
+  return {
+    aqi: interpolatedAQI,
+    nearestStation: nearestStation,
+    nearestDistance: nearestStation.distance
+  };
+};
 
 const AQIBar = ({ className = "" }) => {
   const colors = [
@@ -292,6 +375,34 @@ export default function AirGuardApp() {
       })),
       ...osmResults
     ];
+
+    // Reverse geocoding để lấy địa chỉ từ tọa độ
+    const reverseGeocode = async (lat, lng) => {
+      try {
+        const params = new URLSearchParams({
+          format: 'json',
+          lat: lat.toString(),
+          lon: lng.toString(),
+          addressdetails: '1',
+          zoom: '18'
+        });
+
+        const response = await fetch(`${REVERSE_GEOCODE_ENDPOINT}?${params.toString()}`, {
+          headers: {
+            'Accept-Language': 'vi',
+            'User-Agent': 'SmartAir-UI/1.0 (+https://github.com/nvnhat04/SmartAir-UI)'
+          }
+        });
+
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        return null;
+      }
+    };
 
     const fetchOsmLocations = async (query) => {
       if (query.length < 3) {
@@ -384,6 +495,24 @@ export default function AirGuardApp() {
       const fullData = currentMarkers.find(m => m.id === markerData.id) || markerData;
       setSelectedLoc(fullData);
     };
+
+    // Xử lý khi click vào bất kỳ vị trí nào trên map
+    const handleMapClick = (lat, lng) => {
+      console.log('=== handleMapClick CALLED ===> lat:', lat, 'lng:', lng);
+      // Tìm trạm gần nhất
+      const { nearestStation } = getInterpolatedAQI(lat, lng, currentMarkers);
+      console.log('Nearest station found:', nearestStation);
+      
+      // Hiển thị thông tin của trạm gần nhất
+      if (nearestStation) {
+        console.log('Map clicked, showing nearest station:', nearestStation.name);
+        setSelectedLoc(nearestStation);
+      } else {
+        console.warn('No nearest station found!');
+      }
+    };
+    
+    console.log('handleMapClick function defined:', typeof handleMapClick);
 
     const handleLocateMe = () => {
       if (!navigator.geolocation) {
@@ -606,6 +735,7 @@ export default function AirGuardApp() {
             markers={currentMarkers}
             userLocation={userLocation}
             onMarkerClick={handleMarkerClick}
+            onMapClick={handleMapClick}
             selectedDay={selectedDay}
             showHeatmap={true}
             onMapReady={handleMapReady}
@@ -706,15 +836,50 @@ export default function AirGuardApp() {
     
     const dateTime = getCurrentDateTime();
     
-    const forecastData = [
-  { day: "T2", fullDay: "Thứ 2", date: "25/11", temp: 32, aqi: 90, icon: "☀️" },
-  { day: "T3", fullDay: "Thứ 3", date: "26/11", temp: 30, aqi: 110, icon: "🌤️" },
-  { day: "T4", fullDay: "Thứ 4", date: "27/11", temp: 28, aqi: 120, icon: "⛅" },
-  { day: "T5", fullDay: "Thứ 5", date: "28/11", temp: 32, aqi: 90, icon: "☀️" },
-  { day: "T6", fullDay: "Thứ 6", date: "29/11", temp: 30, aqi: 60, icon: "🌤️" },
-  { day: "T7", fullDay: "Thứ 7", date: "30/11", temp: 28, aqi: 40, icon: "⛅" },
-  { day: "CN", fullDay: "Chủ nhật", date: "01/12", temp: 27, aqi: 20, icon: "🌥️" }
-];
+    // Tạo dữ liệu dự báo thực tế
+    const generateForecastData = () => {
+      const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+      const daysShort = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      const today = new Date();
+      const forecastData = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        
+        const dayOfWeek = date.getDay();
+        const dateStr = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        // Random data cho demo
+        const temp = 27 + Math.floor(Math.random() * 6); // 27-32°C
+        const aqi = 20 + Math.floor(Math.random() * 100); // 20-120 AQI
+        const icons = ["☀️", "🌤️", "⛅", "🌥️"];
+        const icon = icons[Math.floor(Math.random() * icons.length)];
+        
+        forecastData.push({
+          day: daysShort[dayOfWeek],
+          fullDay: days[dayOfWeek],
+          date: dateStr,
+          temp,
+          aqi,
+          icon
+        });
+      }
+      
+      return forecastData;
+    };
+    
+    const forecastData = generateForecastData();
+    
+    // Tính khoảng ngày dự báo
+    const forecastDateRange = forecastData.length > 0 
+      ? `${forecastData[0].date} - ${forecastData[forecastData.length - 1].date}`
+      : '';
+    
+    // Tính khoảng ngày cho biểu đồ weekly
+    const weeklyDateRange = weeklyData.length > 0
+      ? `${weeklyData[0].date} - ${weeklyData[weeklyData.length - 1].date}`
+      : '';
   const getAQIColor = (score) => {
   if (score <= 50) return "bg-green-100 text-green-800";
   if (score <= 100) return "bg-yellow-100 text-yellow-800";
@@ -837,7 +1002,7 @@ export default function AirGuardApp() {
                 <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
                 <h3 className="font-bold text-gray-800 text-base">Diễn biến trong 7 ngày tiếp theo</h3>
               </div>
-              <span className="text-[10px] text-gray-500 font-medium">18/11 - 24/11</span>
+              <span className="text-[10px] text-gray-500 font-medium">{weeklyDateRange}</span>
             </div>
             <div className="h-36 w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-3">
               <ResponsiveContainer width="100%" height="100%">
@@ -878,7 +1043,7 @@ export default function AirGuardApp() {
         <p className="text-xs text-gray-500">Thời tiết & chất lượng không khí</p>
       </div>
     </div>
-    <span className="text-[10px] text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-lg">25/11 - 01/12</span>
+    <span className="text-[10px] text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-lg">{forecastDateRange}</span>
   </div>
 
       {/* Sliding Window */}

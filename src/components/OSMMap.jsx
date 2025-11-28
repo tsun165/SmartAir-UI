@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef } from 'react';
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import AQIWMSLayer from './AQIWMSLayer';
-import VNShapefileLayer from './VNShapefileLayer';
 import MapLabel from './MapLabel';
+import VNShapefileLayer from './VNShapefileLayer';
 
 // Fix icon marker mặc định của Leaflet
 if (L.Icon.Default.prototype._getIconUrl) {
@@ -17,7 +17,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Component để tự động center map khi user location thay đổi
-function MapController({ center, zoom, onMapReady }) {
+function MapController({ center, zoom, onMapReady, onMapClick }) {
   const map = useMap();
   const prevCenterRef = useRef(center);
   const prevZoomRef = useRef(zoom);
@@ -46,6 +46,29 @@ function MapController({ center, zoom, onMapReady }) {
       onMapReady(map);
     }
   }, [map, onMapReady]);
+  
+  // Handle map click events
+  useEffect(() => {
+    console.log('MapController: onMapClick prop =', onMapClick);
+    if (!onMapClick) {
+      console.warn('MapController: onMapClick is not provided!');
+      return;
+    }
+    
+    const handleClick = (e) => {
+      console.log('MapController: Map clicked at', e.latlng);
+      const { lat, lng } = e.latlng;
+      onMapClick(lat, lng);
+    };
+    
+    map.on('click', handleClick);
+    console.log('MapController: Click event listener attached');
+    
+    return () => {
+      map.off('click', handleClick);
+      console.log('MapController: Click event listener removed');
+    };
+  }, [map, onMapClick]);
   
   return null;
 }
@@ -100,6 +123,7 @@ export default function OSMMap({
   markers = [],
   userLocation = null,
   onMarkerClick,
+  onMapClick,
   selectedDay = 0,
   onMapReady,
   showHeatmap = true
@@ -140,7 +164,7 @@ export default function OSMMap({
         <VNShapefileLayer />
 
         {/* Map Controller để tự động center */}
-        <MapController center={center} zoom={zoom} onMapReady={onMapReady} />
+        <MapController center={center} zoom={zoom} onMapReady={onMapReady} onMapClick={onMapClick} />
 
         {/* User Location Marker */}
         {userLocation && (
@@ -148,6 +172,11 @@ export default function OSMMap({
             <Marker
               position={[userLocation.lat, userLocation.lng]}
               icon={createUserIcon()}
+              eventHandlers={{
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                }
+              }}
             >
               <Popup>
                 <div className="text-center">
@@ -201,7 +230,10 @@ export default function OSMMap({
               position={position}
               icon={createAQIIcon(marker.aqi, marker.color)}
               eventHandlers={{
-                click: () => onMarkerClick?.(marker)
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e);
+                  onMarkerClick?.(marker);
+                }
               }}
             >
               <Popup>

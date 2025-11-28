@@ -124,11 +124,11 @@ const WeekendGetaway = ({
               </div>
               <div>
                 <p className="text-[10px] text-gray-600">Vị trí hiện tại</p>
-                <p className="text-sm font-bold text-gray-800">{currentLocation.name}</p>
+                <p className="text-sm font-bold text-gray-800">Phường Cầu Giấy, Hà Nội</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] text-gray-600">AQI hiện tại</p>
+              <p className="text-[10px] text-gray-600">AQI </p>
               <p className="text-lg font-bold text-red-600">{currentLocation.aqi}</p>
             </div>
           </div>

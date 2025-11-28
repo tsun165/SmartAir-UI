@@ -1,31 +1,83 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { BarChart2, History, MapPin, MapPinned, TrendingUp } from 'lucide-react';
+import { History, MapPin, MapPinned, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import WeekendGetaway from './Weekend';
+
+// Hàm tạo dữ liệu analytics 15 ngày thực tế
+const generateAnalyticsData = () => {
+  const locations = [
+    'Phường Yên Thường, Quận Gia Lâm',
+    'Xã Xuân Quan, Huyện Văn Giang',
+    'Phường Nhân Chính, Quận Thanh Xuân',
+    'Phường Suối Hoa, TP. Bắc Ninh',
+    'Phường Quang Trung, Quận Hà Đông',
+    'Phường Tân Dân, TP. Việt Trì',
+    'Phường Sao Đỏ, TP. Chí Linh',
+    'Phường Dịch Vọng, Quận Cầu Giấy',
+  ];
+  
+  const today = new Date();
+  const analyticsData = [];
+  
+  // 7 ngày qua (past)
+  for (let i = -7; i < 0; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    const dateStr = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    const aqi = 30 + Math.floor(Math.random() * 90); // 30-120 AQI
+    const locationIdx = Math.abs(i + 7) % locations.length;
+    
+    analyticsData.push({
+      day: i.toString(),
+      date: dateStr,
+      aqi,
+      location: locations[locationIdx],
+      type: 'past'
+    });
+  }
+  
+  // Hôm nay (present)
+  const todayStr = `${today.getDate().toString().padStart(2, '0')}-${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+  analyticsData.push({
+    day: '0',
+    date: todayStr,
+    aqi: 141,
+    location: 'Phường Dịch Vọng, Quận Cầu Giấy',
+    type: 'present'
+  });
+  
+  // 7 ngày tới (future)
+  for (let i = 1; i <= 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    const dateStr = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    // Lấy thông tin location từ 7 ngày trước để hiển thị note
+    const pastDate = new Date(today);
+    pastDate.setDate(today.getDate() - (8 - i));
+    const pastDateStr = `${pastDate.getDate().toString().padStart(2, '0')}/${(pastDate.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    const aqi = 85 + Math.floor(Math.random() * 50); // 85-135 AQI
+    const locationIdx = (i - 1) % locations.length;
+    const locationName = locations[locationIdx].split(',')[1]?.trim() || locations[locationIdx];
+    
+    analyticsData.push({
+      day: `+${i}`,
+      date: dateStr,
+      aqi,
+      location: `Dự báo: ${locationName}`,
+      type: 'future',
+      note: `Bạn đã đến đây ngày ${pastDateStr}`
+    });
+  }
+  
+  return analyticsData;
+};
+
+const analyticsData = generateAnalyticsData();
+
 // 3. ANALYTICS VIEW (BAR CHART ONLY WITH AQI COLORS AND PM2.5 EXPOSURE)
-const analyticsData = [
-  // 7 ngày qua - Lịch sử di chuyển của user
-  { day: '-7', date: '17-11', aqi: 49, location: 'Phường Yên Thường, Quận Gia Lâm', type: 'past' },
-  { day: '-6', date: '18-11', aqi: 40, location: 'Xã Xuân Quan, Huyện Văn Giang', type: 'past' },
-  { day: '-5', date: '19-11', aqi: 81, location: 'Phường Nhân Chính, Quận Thanh Xuân', type: 'past' },
-  { day: '-4', date: '20-11', aqi: 87, location: 'Phường Suối Hoa, TP. Bắc Ninh', type: 'past' },
-  { day: '-3', date: '21-11', aqi: 91, location: 'Phường Quang Trung, Quận Hà Đông', type: 'past' },
-  { day: '-2', date: '22-11', aqi: 108, location: 'Phường Tân Dân, TP. Việt Trì', type: 'past' },
-  { day: '-1', date: '23-11', aqi: 101, location: 'Phường Sao Đỏ, TP. Chí Linh', type: 'past' },
-  
-  // Hôm nay
-  { day: '0', date: '24-11', aqi: 141, location: 'Phường Dịch Vọng, Quận Cầu Giấy', type: 'present' },
-  
-  // 6 ngày tới - Dự báo dựa trên các địa điểm user đã đi trong 7 ngày qua
-  { day: '+1', date: '25-11', aqi: 95, location: 'Dự báo: Quận Gia Lâm', type: 'future', note: 'Bạn đã đến đây ngày 17/11' },
-  { day: '+2', date: '26-11', aqi: 85, location: 'Dự báo: Huyện Văn Giang', type: 'future', note: 'Bạn đã đến đây ngày 18/11' },
-  { day: '+3', date: '27-11', aqi: 110, location: 'Dự báo: Quận Thanh Xuân', type: 'future', note: 'Bạn đã đến đây ngày 19/11' },
-  { day: '+4', date: '28-11', aqi: 105, location: 'Dự báo: TP. Bắc Ninh', type: 'future', note: 'Bạn đã đến đây ngày 20/11' },
-  { day: '+5', date: '29-11', aqi: 120, location: 'Dự báo: Quận Hà Đông', type: 'future', note: 'Bạn đã đến đây ngày 21/11' },
-  { day: '+6', date: '30-11', aqi: 130, location: 'Dự báo: TP. Việt Trì', type: 'future', note: 'Bạn đã đến đây ngày 22/11' },
-  { day: '+7', date: '01-12', aqi: 125, location: 'Dự báo: TP. Chí Linh', type: 'future', note: 'Bạn đã đến đây ngày 23/11' },
-];
 // 1. Dữ liệu người dùng (Lấy từ GPS & API)
   const userLocation = {
     name: "Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội",
@@ -268,7 +320,7 @@ export default function AnalyticsView () {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Lịch sử & Dự báo</h1>
-          <p className="text-sm text-gray-500 mt-1">Phân tích chất lượng không khí 14 ngày</p>
+          <p className="text-sm text-gray-500 mt-1">Phân tích chất lượng không khí 15 ngày</p>
         </div>
         {/* <div className="bg-white p-3 rounded-xl shadow-sm border border-blue-100">
           <BarChart2 className="text-blue-600" size={24} />
@@ -283,8 +335,8 @@ export default function AnalyticsView () {
             <span className="text-lg">Diễn biến 15 ngày</span>
           </div>
           <div className="flex items-center space-x-2 bg-gray-50 px-3 py-1.5 rounded-lg">
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-            <span className="text-xs text-gray-500">Mã màu AQI</span>
+            {/* <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div> */}
+            {/* <span className="text-xs text-gray-500">Mã màu AQI</span> */}
           </div>
         </div>
 
@@ -331,6 +383,7 @@ export default function AnalyticsView () {
               </div>
               <span className="text-[10px] font-semibold text-gray-500">{selectedData.date}</span>
             </div>
+        
             <div className="font-bold text-gray-800 text-base mt-1 flex items-center">
               <MapPin size={14} className="mr-1.5 text-blue-500"/> 
               {selectedData.location}
@@ -347,9 +400,11 @@ export default function AnalyticsView () {
             </div>
             <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">AQI</div>
           </div>
+          
         </div>
+            <span className="text-xs text-gray-600">Địa điểm đến nhiều nhất trong ngày</span>
       </div>
-
+            
       {/* Route Analysis */}
       <div>
         <div className="flex items-center space-x-3 mb-4">
